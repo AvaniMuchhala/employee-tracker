@@ -3,21 +3,6 @@ const mysql = require('mysql2/promise');
 const cTable = require('console.table');
 let db;
 
-const updateEmployeeQ = [
-    {
-        type: 'list',
-        message: 'Which employee\'s role do you want to update?',
-        choices: ['Avani', 'Nilay'],
-        name: 'employee'
-    },
-    {
-        type: 'list',
-        message: 'Which role would you like to now assign to the selected employee?',
-        choices: ['Software Engineer', 'Accountant'],
-        name: 'updatedRole'
-    }
-];
-
 // Get list of employees for when user needs to select employee's manager
 async function getEmployeeList() {
     const results = await db.execute('SELECT * FROM employee');
@@ -45,6 +30,56 @@ async function getDeptList() {
     const results = await db.execute('SELECT * FROM department');
     console.log(results[0]);
     return results[0];
+}
+
+async function updateEmployee() {
+    const roleChoices = await getRoleList();
+    const roleTitles = [];
+    roleChoices.forEach(role => roleTitles.push(role.title));
+
+    const employeeChoices = await getEmployeeList();
+    const employeeNames = [];
+    employeeChoices.forEach(employee => employeeNames.push(employee.first_name + " " + employee.last_name));
+    
+    const updateEmployeeQ = [
+        {
+            type: 'list',
+            message: 'Which employee\'s role do you want to update?',
+            choices: employeeNames,
+            name: 'employee'
+        },
+        {
+            type: 'list',
+            message: 'Which role would you like to now assign to the selected employee?',
+            choices: roleTitles,
+            name: 'updatedRole'
+        }
+    ];
+
+    inquirer
+        .prompt(updateEmployeeQ)
+        .then(async (data) => {
+            // Find ID of the employee that user selected
+            let employeeID;
+            employeeChoices.forEach(employee => {
+                let employeeFullName = employee.first_name + " " + employee.last_name;
+                if (employeeFullName === data.employee) {
+                    employeeID = employee.id;
+                }
+            });
+            
+            // Find ID of the role that user selected
+            let updatedRoleID;
+            roleChoices.forEach(role => {
+                if (role.title === data.updatedRole) {
+                    updatedRoleID = role.id;
+                }
+            });            
+             
+            const result = await db.execute('UPDATE employee SET role_id = ? WHERE id = ?', [updatedRoleID, employeeID]);
+            console.log(`${data.employee}'s role has been updated to ${data.updatedRole}!`);
+            showMenu();
+        });
 }
 
 async function addEmployee() {
@@ -264,6 +299,8 @@ function showMenu() {
                 addRole();
             } else if (menuA.action === 'Add an employee') {
                 addEmployee();
+            } else if (menuA.action === 'Update an employee role') {
+                updateEmployee();
             }
             return;
         });
