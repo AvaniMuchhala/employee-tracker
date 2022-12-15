@@ -83,7 +83,7 @@ async function addEmployee() {
 
     inquirer
         .prompt(addEmployeeQ)
-        .then(data => {
+        .then(async (data) => {
             // Find ID of the role that user selected
             let roleID;
             roleChoices.forEach(role => {
@@ -101,15 +101,9 @@ async function addEmployee() {
                 }
             });
 
-            db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID], (err, result) => {
-                if (err) {
-                    console.log(err);
-                } else {
-                    console.log(result);
-                    
-                    showMenu();
-                }
-            });
+            const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
+            console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!`);
+            showMenu();
         });
 }
 
