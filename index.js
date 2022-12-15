@@ -1,4 +1,17 @@
 const inquirer = require('inquirer');
+const mysql = require('mysql2');
+const cTable = require('console.table');
+
+// Connect to database
+const db = mysql.createConnection(
+    {
+        host: 'localhost',
+        user: 'root',
+        password: 'root-pw',
+        database: 'company_db'
+    },
+    console.log('Connected to company_db database.')
+);
 
 // Menu options about next step
 const menuQ = [
@@ -76,17 +89,44 @@ const updateEmployeeQ = [
 
 function viewDept() {
     console.log("View all departments");
-    showMenu();
+
+    db.query('SELECT * FROM department', (err, result) => {
+        if (err) {
+            console.error(err);
+        } else {
+            console.table('DEPARTMENTS', result);
+
+            showMenu();
+        }
+    });
 }
 
 function viewRoles() {
     console.log("View all roles");
-    showMenu();
+
+    db.query('SELECT * FROM role', (err, result) => {
+        if (err) {
+            console.error(err);
+        } else {
+            console.table('ROLES', result);
+
+            showMenu();
+        }
+    });
 }
 
 function viewEmployees() {
     console.log("View all employees");
-    showMenu();
+    
+    db.query('SELECT * FROM employee', (err, result) => {
+        if (err) {
+            console.error(err);
+        } else {
+            console.table('EMPLOYEES', result);
+
+            showMenu();
+        }
+    });
 }
 
 function showMenu() {
