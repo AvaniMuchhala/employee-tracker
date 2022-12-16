@@ -43,53 +43,62 @@ async function updateEmployee() {
     const employeeNames = [];
     employeeChoices.forEach(employee => employeeNames.push(employee.first_name + " " + employee.last_name));
 
-    const updateEmployeeQ = [
-        {
-            type: 'list',
-            message: 'Which employee\'s role do you want to update?',
-            choices: employeeNames,
-            name: 'employee'
-        },
-        {
-            type: 'list',
-            message: 'Which role would you like to now assign to the selected employee?',
-            choices: roleTitles,
-            name: 'updatedRole'
-        }
-    ];
-
-    inquirer
-        .prompt(updateEmployeeQ)
-        .then(async (data) => {
-            // Find ID of the employee that user selected
-            let employeeID;
-            employeeChoices.forEach(employee => {
-                let employeeFullName = employee.first_name + " " + employee.last_name;
-                if (employeeFullName === data.employee) {
-                    employeeID = employee.id;
-                }
-            });
-
-            // Find ID of the role that user selected
-            let updatedRoleID;
-            roleChoices.forEach(role => {
-                if (role.title === data.updatedRole) {
-                    updatedRoleID = role.id;
-                }
-            });
-
-            try {
-                const result = await db.execute('UPDATE employee SET role_id = ? WHERE id = ?', [updatedRoleID, employeeID]);
-                console.log(`${data.employee}'s role has been updated to ${data.updatedRole}!\n`);
-                showMenu();
-            } catch (err) {
-                console.error(err);
+    // Don't allow user to update employee if no employees exist in database
+    if (employeeNames.length === 0) {
+        console.log('No employees exist yet.\nPlease add at least one employee first.\n');
+        showMenu();
+    } else {
+        const updateEmployeeQ = [
+            {
+                type: 'list',
+                message: 'Which employee\'s role do you want to update?',
+                choices: employeeNames,
+                name: 'employee'
+            },
+            {
+                type: 'list',
+                message: 'Which role would you like to now assign to the selected employee?',
+                choices: roleTitles,
+                name: 'updatedRole'
             }
-        });
+        ];
 
+        inquirer
+            .prompt(updateEmployeeQ)
+            .then(async (data) => {
+                // Find ID of the employee that user selected
+                let employeeID;
+                employeeChoices.forEach(employee => {
+                    let employeeFullName = employee.first_name + " " + employee.last_name;
+                    if (employeeFullName === data.employee) {
+                        employeeID = employee.id;
+                    }
+                });
+
+                // Find ID of the role that user selected
+                let updatedRoleID;
+                roleChoices.forEach(role => {
+                    if (role.title === data.updatedRole) {
+                        updatedRoleID = role.id;
+                    }
+                });
+
+                try {
+                    const result = await db.execute('UPDATE employee SET role_id = ? WHERE id = ?', [updatedRoleID, employeeID]);
+                    console.log(`${data.employee}'s role has been updated to ${data.updatedRole}!\n`);
+                    showMenu();
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+    }
 }
 
 async function addEmployee() {
+    const deptChoices = await getDeptList();
+    const deptNames = [];
+    deptChoices.forEach(dept => deptNames.push(dept.name));
+
     const roleChoices = await getRoleList();
     const roleTitles = [];
     roleChoices.forEach(role => roleTitles.push(role.title));
@@ -97,60 +106,70 @@ async function addEmployee() {
     const employeeChoices = await getEmployeeList();
     const employeeNames = [];
     employeeChoices.forEach(employee => employeeNames.push(employee.first_name + " " + employee.last_name));
-    const addEmployeeQ = [
-        {
-            type: 'input',
-            message: 'Enter the employee\'s first name',
-            name: 'firstName' 
-        },
-        {
-            type: 'input',
-            message: 'Enter the employee\'s last name',
-            name: 'lastName'
-        },
-        {
-            type: 'list',
-            message: 'Select the employee\'s role:',
-            choices: roleTitles,
-            name: 'role'
-        },
-        // what is employee doesnt have manager or is the manager?
-        {
-            type: 'list',
-            message: 'Select the name of the employee\'s manager:',
-            choices: employeeNames,
-            name: 'managerName'
-        }
-    ];
-
-    inquirer
-        .prompt(addEmployeeQ)
-        .then(async (data) => {
-            // Find ID of the role that user selected
-            let roleID;
-            roleChoices.forEach(role => {
-                if (role.title === data.role) {
-                    roleID = role.id;
-                }
-            });
-
-            // Find ID of the employee that user selected as their manager
-            let managerID;
-            employeeChoices.forEach(employee => {
-                let employeeFullName = employee.first_name + " " + employee.last_name;
-                if (employeeFullName === data.managerName) {
-                    managerID = employee.id;
-                }
-            });
-
-            try {
-                const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
-                console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!\n`);
-                showMenu();
-            } catch (err) {
-                console.error(err);
+    
+    // Don't allow user to add an employee if no depts or roles exist in database
+    if (deptNames.length === 0 && roleTitles.length === 0) {
+        console.log('No departments or roles exist yet.\nPlease add at least one department first, and then add at least one role.\n');
+        showMenu();
+    } else if (roleTitles.length === 0) {
+        console.log('No roles exist yet.\nPlease add at least one role first.\n');
+        showMenu();
+    } else {
+        const addEmployeeQ = [
+            {
+                type: 'input',
+                message: 'Enter the employee\'s first name:',
+                name: 'firstName'
+            },
+            {
+                type: 'input',
+                message: 'Enter the employee\'s last name:',
+                name: 'lastName'
+            },
+            {
+                type: 'list',
+                message: 'Select the employee\'s role:',
+                choices: roleTitles,
+                name: 'role'
+            },
+            // what is employee doesnt have manager or is the manager?
+            {
+                type: 'list',
+                message: 'Select the name of the employee\'s manager:',
+                choices: employeeNames,
+                name: 'managerName'
             }
-        });
+        ];
+
+        inquirer
+            .prompt(addEmployeeQ)
+            .then(async (data) => {
+                // Find ID of the role that user selected
+                let roleID;
+                roleChoices.forEach(role => {
+                    if (role.title === data.role) {
+                        roleID = role.id;
+                    }
+                });
+
+                // Find ID of the employee that user selected as their manager
+                let managerID;
+                employeeChoices.forEach(employee => {
+                    let employeeFullName = employee.first_name + " " + employee.last_name;
+                    if (employeeFullName === data.managerName) {
+                        managerID = employee.id;
+                    }
+                });
+
+                try {
+                    const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
+                    console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!\n`);
+                    showMenu();
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+    }
 }
 
 async function addRole() {
@@ -158,43 +177,50 @@ async function addRole() {
     const deptNames = [];
     deptChoices.forEach(dept => deptNames.push(dept.name));
 
-    const addRoleQ = [
-        {
-            type: 'input',
-            message: 'Enter the name of the role:',
-            name: 'roleName'
-        },
-        {
-            type: 'input',
-            message: 'Enter the salary of the role:',
-            name: 'salary'
-        },
-        {
-            type: 'list',
-            message: 'Enter the department that the role belongs to:',
-            choices: deptNames,
-            name: 'department'
-        }
-    ];
-    inquirer
-        .prompt(addRoleQ)
-        .then(async (data) => {
-            // Find ID of the department that user selected
-            let deptID;
-            deptChoices.forEach(dept => {
-                if (dept.name === data.department) {
-                    deptID = dept.id;
+    // Don't allow user to add a role if no departments in database
+    if (deptNames.length === 0) {
+        console.log('No departments exist yet.\nPlease add at least one department first.\n');
+        showMenu();
+    } else {
+        const addRoleQ = [
+            {
+                type: 'input',
+                message: 'Enter the name of the role:',
+                name: 'roleName'
+            },
+            {
+                type: 'input',
+                message: 'Enter the salary of the role:',
+                name: 'salary'
+            },
+            {
+                type: 'list',
+                message: 'Enter the department that the role belongs to:',
+                choices: deptNames,
+                name: 'department'
+            }
+        ];
+
+        inquirer
+            .prompt(addRoleQ)
+            .then(async (data) => {
+                // Find ID of the department that user selected
+                let deptID;
+                deptChoices.forEach(dept => {
+                    if (dept.name === data.department) {
+                        deptID = dept.id;
+                    }
+                });
+
+                try {
+                    const result = await db.execute('INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)', [data.roleName, deptID, data.salary]);
+                    console.log(`${data.roleName} role was added to the database!\n`);
+                    showMenu();
+                } catch (err) {
+                    console.error(err);
                 }
             });
-
-            try {
-                const result = await db.execute('INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)', [data.roleName, deptID, data.salary]);
-                console.log(`${data.roleName} role was added to the database!\n`);
-                showMenu();
-            } catch (err) {
-                console.error(err);
-            }
-        });
+    }
 }
 
 function addDept() {
