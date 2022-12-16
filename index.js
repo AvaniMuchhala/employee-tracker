@@ -5,21 +5,33 @@ let db;
 
 // Get list of employees for when user needs to select employee's manager
 async function getEmployeeList() {
-    const results = await db.execute('SELECT * FROM employee');
-    return results[0];
+    try {
+        const results = await db.execute('SELECT * FROM employee');
+        return results[0];
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 // Get list of roles for when user needs to select employee's role
 async function getRoleList() {
-    const results = await db.execute('SELECT * FROM role');
-    return results[0];
+    try {
+        const results = await db.execute('SELECT * FROM role');
+        return results[0];
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 // Get list of departments for when user needs to select the dept that the new role belongs to
 async function getDeptList() {
     // what if no departments in list?
-    const results = await db.execute('SELECT * FROM department');
-    return results[0];
+    try {
+        const results = await db.execute('SELECT * FROM department');
+        return results[0];
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 async function updateEmployee() {
@@ -30,7 +42,7 @@ async function updateEmployee() {
     const employeeChoices = await getEmployeeList();
     const employeeNames = [];
     employeeChoices.forEach(employee => employeeNames.push(employee.first_name + " " + employee.last_name));
-    
+
     const updateEmployeeQ = [
         {
             type: 'list',
@@ -57,19 +69,24 @@ async function updateEmployee() {
                     employeeID = employee.id;
                 }
             });
-            
+
             // Find ID of the role that user selected
             let updatedRoleID;
             roleChoices.forEach(role => {
                 if (role.title === data.updatedRole) {
                     updatedRoleID = role.id;
                 }
-            });            
-             
-            const result = await db.execute('UPDATE employee SET role_id = ? WHERE id = ?', [updatedRoleID, employeeID]);
-            console.log(`${data.employee}'s role has been updated to ${data.updatedRole}!\n`);
-            showMenu();
+            });
+
+            try {
+                const result = await db.execute('UPDATE employee SET role_id = ? WHERE id = ?', [updatedRoleID, employeeID]);
+                console.log(`${data.employee}'s role has been updated to ${data.updatedRole}!\n`);
+                showMenu();
+            } catch (err) {
+                console.error(err);
+            }
         });
+
 }
 
 async function addEmployee() {
@@ -126,9 +143,13 @@ async function addEmployee() {
                 }
             });
 
-            const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
-            console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!\n`);
-            showMenu();
+            try {
+                const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
+                console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!\n`);
+                showMenu();
+            } catch (err) {
+                console.error(err);
+            }
         });
 }
 
@@ -166,9 +187,13 @@ async function addRole() {
                 }
             });
 
-            const result = await db.execute('INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)', [data.roleName, deptID, data.salary]);
-            console.log(`${data.roleName} role was added to the database!\n`);
-            showMenu();
+            try {
+                const result = await db.execute('INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)', [data.roleName, deptID, data.salary]);
+                console.log(`${data.roleName} role was added to the database!\n`);
+                showMenu();
+            } catch (err) {
+                console.error(err);
+            }
         });
 }
 
@@ -184,50 +209,66 @@ function addDept() {
     inquirer
         .prompt(addDeptQ)
         .then(async (data) => {
-            const results = await db.execute('INSERT INTO department (name) VALUES (?)', [data.deptName]);
-            console.log(`${data.deptName} department was added to the database!\n`);
-            showMenu();
+            try {
+                const results = await db.execute('INSERT INTO department (name) VALUES (?)', [data.deptName]);
+                console.log(`${data.deptName} department was added to the database!\n`);
+                showMenu();
+            } catch (err) {
+                console.error(err);
+            }
         });
 }
 
 async function viewEmployees() {
-    const result = await db.execute(`SELECT emp1.id AS 'ID', emp1.first_name AS 'FIRST NAME', emp1.last_name AS 'LAST NAME', 
+    try {
+        const result = await db.execute(`SELECT emp1.id AS 'ID', emp1.first_name AS 'FIRST NAME', emp1.last_name AS 'LAST NAME', 
                                     role.title AS 'TITLE', department.name AS 'DEPARTMENT', salary AS 'SALARY', IF(ISNULL(emp1.manager_id), 'null', CONCAT_WS(' ', emp2.first_name, emp2.last_name)) AS 'MANAGER' 
                                     FROM employee AS emp1 LEFT JOIN employee AS emp2 ON emp1.manager_id = emp2.id JOIN role ON emp1.role_id = role.id 
                                     JOIN department ON role.department_id = department.id`);
 
-    // If employee table empty, inform user, otherwise display table
-    if (result[0].length === 0) {
-        console.log('No employees added yet.\n');
-    } else {
-        console.table('\nEMPLOYEES', result[0]);
+        // If employee table empty, inform user, otherwise display table
+        if (result[0].length === 0) {
+            console.log('No employees added yet.\n');
+        } else {
+            console.table('\nEMPLOYEES', result[0]);
+        }
+        showMenu();
+    } catch (err) {
+        console.error(err);
     }
-    showMenu();
 }
 
 async function viewRoles() {
-    const result = await db.execute('SELECT role.id AS `ID`, title AS `TITLE`, department.name AS `DEPARTMENT`, salary AS `SALARY` FROM role JOIN department ON role.department_id = department.id');
-    // console.log(result);
+    try {
+        const result = await db.execute('SELECT role.id AS `ID`, title AS `TITLE`, department.name AS `DEPARTMENT`, salary AS `SALARY` FROM role JOIN department ON role.department_id = department.id');
+        // console.log(result);
 
-    // If role table empty, inform user, otherwise display table
-    if (result[0].length === 0) {
-        console.log('No roles added yet.\n');
-    } else {
-        console.table('\nROLES', result[0]);
+        // If role table empty, inform user, otherwise display table
+        if (result[0].length === 0) {
+            console.log('No roles added yet.\n');
+        } else {
+            console.table('\nROLES', result[0]);
+        }
+        showMenu();
+    } catch (err) {
+        console.error(err);
     }
-    showMenu();
 }
 
 async function viewDepts() {
-    const result = await db.execute('SELECT id AS `ID`, name AS `NAME` FROM department');
+    try {
+        const result = await db.execute('SELECT id AS `ID`, name AS `NAME` FROM department');
 
-    // If dept table empty, inform user, otherwise display table
-    if (result[0].length === 0) {
-        console.log('No departments added yet.\n');
-    } else {
-        console.table('\nDEPARTMENTS', result[0]);
+        // If dept table empty, inform user, otherwise display table
+        if (result[0].length === 0) {
+            console.log('No departments added yet.\n');
+        } else {
+            console.table('\nDEPARTMENTS', result[0]);
+        }
+        showMenu();
+    } catch (err) {
+        console.error(err);
     }
-    showMenu();
 }
 
 // Ask repeating questions to user about what action to take
@@ -267,19 +308,22 @@ function showMenu() {
 
 // Start program
 async function init() {
-    // Connect to database
-    db = await mysql.createConnection(
-        {
-            host: 'localhost',
-            user: 'root',
-            password: 'root-pw',
-            database: 'company_db'
-        }
-    );
+    try {
+        // Connect to database
+        db = await mysql.createConnection(
+            {
+                host: 'localhost',
+                user: 'root',
+                password: 'root-pw',
+                database: 'company_db'
+            }
+        );
 
-    console.log('Welcome to the Employee Tracker!\n');
-
-    showMenu();
+        console.log('Welcome to the Employee Tracker!\n');
+        showMenu();
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 init();
