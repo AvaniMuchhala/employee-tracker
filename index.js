@@ -115,6 +115,9 @@ async function addEmployee() {
         console.log('No roles exist yet.\nPlease add at least one role first.\n');
         showMenu();
     } else {
+        // If employee has no manager/is the manager
+        employeeNames.push('None');
+
         const addEmployeeQ = [
             {
                 type: 'input',
@@ -132,7 +135,6 @@ async function addEmployee() {
                 choices: roleTitles,
                 name: 'role'
             },
-            // what is employee doesnt have manager or is the manager?
             {
                 type: 'list',
                 message: 'Select the name of the employee\'s manager:',
@@ -152,15 +154,17 @@ async function addEmployee() {
                     }
                 });
 
-                // Find ID of the employee that user selected as their manager
-                let managerID;
-                employeeChoices.forEach(employee => {
-                    let employeeFullName = employee.first_name + " " + employee.last_name;
-                    if (employeeFullName === data.managerName) {
-                        managerID = employee.id;
-                    }
-                });
-
+                // Find ID of the employee that user selected as their manager. If no manager, ID is null
+                let managerID = null;
+                if (data.managerName !== 'None') {
+                    employeeChoices.forEach(employee => {
+                        let employeeFullName = employee.first_name + " " + employee.last_name;
+                        if (employeeFullName === data.managerName) {
+                            managerID = employee.id;
+                        }
+                    });
+                }
+            
                 try {
                     const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
                     console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!\n`);
