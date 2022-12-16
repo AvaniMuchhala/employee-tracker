@@ -3,7 +3,7 @@ const mysql = require('mysql2/promise');
 const cTable = require('console.table');
 let db;
 
-// Get list of employees for when user needs to select employee's manager
+// Get list of current employees in DB
 async function getEmployeeList() {
     try {
         const results = await db.execute('SELECT * FROM employee');
@@ -13,7 +13,7 @@ async function getEmployeeList() {
     }
 }
 
-// Get list of roles for when user needs to select employee's role
+// Get list of current roles in DB
 async function getRoleList() {
     try {
         const results = await db.execute('SELECT * FROM role');
@@ -23,9 +23,8 @@ async function getRoleList() {
     }
 }
 
-// Get list of departments for when user needs to select the dept that the new role belongs to
+// Get list of current departments in DB
 async function getDeptList() {
-    // what if no departments in list?
     try {
         const results = await db.execute('SELECT * FROM department');
         return results[0];
@@ -36,48 +35,58 @@ async function getDeptList() {
 
 // View table of combined salaries of all employees in certain department
 async function viewTotalBudget() {
+    // Get current list of deparments
     const deptChoices = await getDeptList();
     const deptNames = [];
     deptChoices.forEach(dept => deptNames.push(dept.name));
 
-    const viewBudgetDeptQ = [
-        {
-            type: 'list',
-            message: 'For which department would you like to see the total utilized budget?',
-            choices: deptNames,
-            name: 'deptBudget'
-        }
-    ];
+    // Don't allow user to view total budget for dept if no departments in database
+    if (deptNames.length === 0) {
+        console.log('No departments exist in the database yet.');
+        showMenu();
+    } else {
+        const viewBudgetDeptQ = [
+            {
+                type: 'list',
+                message: 'For which department would you like to see the total utilized budget?',
+                choices: deptNames,
+                name: 'deptBudget'
+            }
+        ];
 
-    inquirer
-        .prompt(viewBudgetDeptQ)
-        .then(async (data) => {
-            try {
-                const result = await db.execute(`SELECT department.name as 'DEPARTMENT', SUM(role.salary) AS 'TOTAL BUDGET'
+        inquirer
+            .prompt(viewBudgetDeptQ)
+            .then(async (data) => {
+                // Select department name that user inputted, sum the salaries of all employees in that department
+                try {
+                    const result = await db.execute(`SELECT department.name as 'DEPARTMENT', SUM(role.salary) AS 'TOTAL BUDGET'
                                                 FROM employee AS emp1 LEFT JOIN employee AS emp2 ON emp1.manager_id = emp2.id JOIN role ON emp1.role_id = role.id 
                                                 JOIN department ON role.department_id = department.id WHERE department.name = ? GROUP BY role.department_id`, [data.deptBudget]);
-        
-                // If budget table empty, inform user, otherwise display table
-                if (result[0].length === 0) {
-                    console.log('No employees have been added to this department yet.\n');
-                    const value = [[data.deptBudget, 0]];
-                    console.table(['DEPARTMENT', 'TOTAL BUDGET'], value);
-                } else {
-                    // console.log('\n');
-                    console.table(result[0]);
+
+                    // If budget table empty, it means dept exists but no employees added yet 
+                    if (result[0].length === 0) {
+                        console.log('No employees have been added to this department yet.\n');
+                        const value = [[data.deptBudget, 0]];
+                        console.table(['DEPARTMENT', 'TOTAL BUDGET'], value);
+                    } else {
+                        console.table(result[0]);
+                    }
+                    showMenu();
+                } catch (err) {
+                    console.error(err);
                 }
-                showMenu();
-            } catch (err) {
-                console.error(err);
-            }
-        });
+            });
+    }
 }
 
+// Update an employee's role
 async function updateEmployee() {
+    // Get current list of roles
     const roleChoices = await getRoleList();
     const roleTitles = [];
     roleChoices.forEach(role => roleTitles.push(role.title));
 
+    // Get current list of employees
     const employeeChoices = await getEmployeeList();
     const employeeNames = [];
     employeeChoices.forEach(employee => employeeNames.push(employee.first_name + " " + employee.last_name));
@@ -133,15 +142,19 @@ async function updateEmployee() {
     }
 }
 
+// Add new employee to database based on user input
 async function addEmployee() {
+    // Get current list of deparments
     const deptChoices = await getDeptList();
     const deptNames = [];
     deptChoices.forEach(dept => deptNames.push(dept.name));
 
+    // Get current list of roles
     const roleChoices = await getRoleList();
     const roleTitles = [];
     roleChoices.forEach(role => roleTitles.push(role.title));
 
+    // Get current list of employees
     const employeeChoices = await getEmployeeList();
     const employeeNames = [];
     employeeChoices.forEach(employee => employeeNames.push(employee.first_name + " " + employee.last_name));
@@ -204,6 +217,7 @@ async function addEmployee() {
                     });
                 }
             
+                // Insert new employee info to 'employee' table
                 try {
                     const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
                     console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!\n`);
@@ -215,7 +229,9 @@ async function addEmployee() {
     }
 }
 
+// Add a new role to database based on user input
 async function addRole() {
+    // Get list of current departments
     const deptChoices = await getDeptList();
     const deptNames = [];
     deptChoices.forEach(dept => deptNames.push(dept.name));
@@ -255,6 +271,7 @@ async function addRole() {
                     }
                 });
 
+                // Insert new role info to 'role' table
                 try {
                     const result = await db.execute('INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)', [data.roleName, deptID, data.salary]);
                     console.log(`${data.roleName} role was added to the database!\n`);
@@ -266,6 +283,7 @@ async function addRole() {
     }
 }
 
+// Add a new department to database based on user input
 function addDept() {
     const addDeptQ = [
         {
@@ -278,6 +296,7 @@ function addDept() {
     inquirer
         .prompt(addDeptQ)
         .then(async (data) => {
+            // Insert new dept info to 'department' table
             try {
                 const results = await db.execute('INSERT INTO department (name) VALUES (?)', [data.deptName]);
                 console.log(`${data.deptName} department was added to the database!\n`);
@@ -288,6 +307,7 @@ function addDept() {
         });
 }
 
+// View employee ID, first & last name, role title, dept, salary, and manager in table 
 async function viewEmployees() {
     try {
         const result = await db.execute(`SELECT emp1.id AS 'ID', emp1.first_name AS 'FIRST NAME', emp1.last_name AS 'LAST NAME', 
@@ -307,10 +327,10 @@ async function viewEmployees() {
     }
 }
 
+// View role ID, role title, department, and salary in table
 async function viewRoles() {
     try {
         const result = await db.execute('SELECT role.id AS `ID`, title AS `TITLE`, department.name AS `DEPARTMENT`, salary AS `SALARY` FROM role JOIN department ON role.department_id = department.id');
-        // console.log(result);
 
         // If role table empty, inform user, otherwise display table
         if (result[0].length === 0) {
@@ -324,6 +344,7 @@ async function viewRoles() {
     }
 }
 
+// View department ID and names in table
 async function viewDepts() {
     try {
         const result = await db.execute('SELECT id AS `ID`, name AS `NAME` FROM department');
@@ -354,6 +375,7 @@ function showMenu() {
     inquirer
         .prompt(menuQ)
         .then(menuA => {
+            // Call appropriate function to handle the action that user selected
             if (menuA.action === 'View all departments') {
                 viewDepts();
             } else if (menuA.action === 'View all roles') {
@@ -372,6 +394,7 @@ function showMenu() {
                 viewTotalBudget();
             } else if (menuA.action === 'Quit') {
                 console.log('Goodbye!');  
+                // Terminate the process
                 process.exit();    
             }
         });
@@ -398,4 +421,3 @@ async function init() {
 }
 
 init();
-
