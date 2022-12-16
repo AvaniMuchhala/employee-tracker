@@ -6,29 +6,19 @@ let db;
 // Get list of employees for when user needs to select employee's manager
 async function getEmployeeList() {
     const results = await db.execute('SELECT * FROM employee');
-    console.log(results[0]);
     return results[0];
 }
 
 // Get list of roles for when user needs to select employee's role
 async function getRoleList() {
     const results = await db.execute('SELECT * FROM role');
-    console.log(results[0]);
     return results[0];
 }
 
 // Get list of departments for when user needs to select the dept that the new role belongs to
 async function getDeptList() {
-    // db.query('SELECT name FROM department', (err, result) => {
-    //     console.log(result);    // array of objects
-    //     const deptList = [];
-    //     result.forEach(obj => deptList.push(obj.name));
-    //     return deptList;
-    // });
- 
     // what if no departments in list?
     const results = await db.execute('SELECT * FROM department');
-    console.log(results[0]);
     return results[0];
 }
 
@@ -77,7 +67,7 @@ async function updateEmployee() {
             });            
              
             const result = await db.execute('UPDATE employee SET role_id = ? WHERE id = ?', [updatedRoleID, employeeID]);
-            console.log(`${data.employee}'s role has been updated to ${data.updatedRole}!`);
+            console.log(`${data.employee}'s role has been updated to ${data.updatedRole}!\n`);
             showMenu();
         });
 }
@@ -137,7 +127,7 @@ async function addEmployee() {
             });
 
             const result = await db.execute('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.firstName, data.lastName, roleID, managerID]);
-            console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!`);
+            console.log(`${data.firstName + " " + data.lastName} was added as an employee to the database!\n`);
             showMenu();
         });
 }
@@ -177,7 +167,7 @@ async function addRole() {
             });
 
             const result = await db.execute('INSERT INTO role (title, department_id, salary) VALUES (?, ?, ?)', [data.roleName, deptID, data.salary]);
-            console.log(`${data.roleName} role was added to the database!`);
+            console.log(`${data.roleName} role was added to the database!\n`);
             showMenu();
         });
 }
@@ -194,17 +184,8 @@ function addDept() {
     inquirer
         .prompt(addDeptQ)
         .then(async (data) => {
-            // db.query('INSERT INTO department (name) VALUES (?)', data.deptName, (err, result) => {
-            //     if (err) {
-            //         console.log(err);
-            //     } else {
-            //         console.log(`${data.deptName} department was added to the database!`);
-            //         showMenu();
-            //     }
-            // });
-
             const results = await db.execute('INSERT INTO department (name) VALUES (?)', [data.deptName]);
-            console.log(`${data.deptName} department was added to the database!`);
+            console.log(`${data.deptName} department was added to the database!\n`);
             showMenu();
         });
 }
@@ -214,30 +195,38 @@ async function viewEmployees() {
                                     role.title AS 'TITLE', department.name AS 'DEPARTMENT', salary AS 'SALARY', IF(ISNULL(emp1.manager_id), 'null', CONCAT_WS(' ', emp2.first_name, emp2.last_name)) AS 'MANAGER' 
                                     FROM employee AS emp1 LEFT JOIN employee AS emp2 ON emp1.manager_id = emp2.id JOIN role ON emp1.role_id = role.id 
                                     JOIN department ON role.department_id = department.id`);
-    // console.log(result);
-    console.table('\nEMPLOYEES', result[0]);
+
+    // If employee table empty, inform user, otherwise display table
+    if (result[0].length === 0) {
+        console.log('No employees added yet.\n');
+    } else {
+        console.table('\nEMPLOYEES', result[0]);
+    }
     showMenu();
 }
 
 async function viewRoles() {
     const result = await db.execute('SELECT role.id AS `ID`, title AS `TITLE`, department.name AS `DEPARTMENT`, salary AS `SALARY` FROM role JOIN department ON role.department_id = department.id');
     // console.log(result);
-    console.table('\nROLES', result[0]);
+
+    // If role table empty, inform user, otherwise display table
+    if (result[0].length === 0) {
+        console.log('No roles added yet.\n');
+    } else {
+        console.table('\nROLES', result[0]);
+    }
     showMenu();
 }
 
 async function viewDepts() {
-    // db.execute('SELECT * FROM department')
-    //     .then(result => {
-    //         console.log(result);
-    //         console.table('DEPARTMENTS', result[0]);
-    //         showMenu();
-    //     })
-    //     .catch(err => console.error(err));
-
     const result = await db.execute('SELECT id AS `ID`, name AS `NAME` FROM department');
-    // console.log(result);
-    console.table('\nDEPARTMENTS', result[0]);
+
+    // If dept table empty, inform user, otherwise display table
+    if (result[0].length === 0) {
+        console.log('No departments added yet.\n');
+    } else {
+        console.table('\nDEPARTMENTS', result[0]);
+    }
     showMenu();
 }
 
@@ -285,11 +274,10 @@ async function init() {
             user: 'root',
             password: 'root-pw',
             database: 'company_db'
-        },
-        console.log('Connected to company_db database.')
+        }
     );
 
-    console.log('Welcome to the Employee Tracker!');
+    console.log('Welcome to the Employee Tracker!\n');
 
     showMenu();
 }
