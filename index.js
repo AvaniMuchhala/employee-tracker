@@ -210,55 +210,23 @@ function addDept() {
 }
 
 async function viewEmployees() {
-    console.log("View all employees");
-    
-    // db.query('SELECT * FROM employee', (err, result) => {
-    //     if (err) {
-    //         console.error(err);
-    //     } else {
-    //         console.table('EMPLOYEES', result);
-
-    //         showMenu();
-    //     }
-    // });
-
-    const result = await db.execute('SELECT * FROM employee');
+    const result = await db.execute(`SELECT emp1.id AS 'ID', emp1.first_name AS 'FIRST NAME', emp1.last_name AS 'LAST NAME', 
+                                    role.title AS 'TITLE', department.name AS 'DEPARTMENT', salary AS 'SALARY', IF(ISNULL(emp1.manager_id), 'null', CONCAT_WS(' ', emp2.first_name, emp2.last_name)) AS 'MANAGER' 
+                                    FROM employee AS emp1 LEFT JOIN employee AS emp2 ON emp1.manager_id = emp2.id JOIN role ON emp1.role_id = role.id 
+                                    JOIN department ON role.department_id = department.id`);
     // console.log(result);
-    console.table('EMPLOYEES', result[0]);
+    console.table('\nEMPLOYEES', result[0]);
     showMenu();
 }
 
 async function viewRoles() {
-    console.log("View all roles");
-
-    // db.query('SELECT * FROM role', (err, result) => {
-    //     if (err) {
-    //         console.error(err);
-    //     } else {
-    //         console.table('ROLES', result);
-
-    //         showMenu();
-    //     }
-    // });
-
-    const result = await db.execute('SELECT * FROM role');
+    const result = await db.execute('SELECT role.id AS `ID`, title AS `TITLE`, department.name AS `DEPARTMENT`, salary AS `SALARY` FROM role JOIN department ON role.department_id = department.id');
     // console.log(result);
-    console.table('ROLES', result[0]);
+    console.table('\nROLES', result[0]);
     showMenu();
 }
 
 async function viewDepts() {
-    console.log("View all departments");
-
-    // db.query('SELECT * FROM department', (err, result) => {
-    //     if (err) {
-    //         console.error(err);
-    //     } else {
-    //         console.table('DEPARTMENTS', result);
-    //         showMenu();
-    //     }
-    // });
-
     // db.execute('SELECT * FROM department')
     //     .then(result => {
     //         console.log(result);
@@ -267,9 +235,9 @@ async function viewDepts() {
     //     })
     //     .catch(err => console.error(err));
 
-    const result = await db.execute('SELECT * FROM department');
+    const result = await db.execute('SELECT id AS `ID`, name AS `NAME` FROM department');
     // console.log(result);
-    console.table('DEPARTMENTS', result[0]);
+    console.table('\nDEPARTMENTS', result[0]);
     showMenu();
 }
 
@@ -279,7 +247,7 @@ function showMenu() {
         {
             type: 'list',
             message: 'What would you like to do?',
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role'],
+            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role', 'Quit'],
             name: 'action'
         }
     ];
@@ -301,8 +269,10 @@ function showMenu() {
                 addEmployee();
             } else if (menuA.action === 'Update an employee role') {
                 updateEmployee();
+            } else if (menuA.action === 'Quit') {
+                console.log('Goodbye!');  
+                process.exit();    
             }
-            return;
         });
 }
 
