@@ -27,8 +27,8 @@ node index.js
 
 At the start of the app, you will be presented with a list of actions to choose from. Select the action you want to perform. Some actions require further prompts. After the requested data has been displayed, you will be presented with the menu of options again. Select "Quit" when you are done.
 
-Here is a [walkthrough video]() demonstrating the functionality of the application (also displayed below):
-![employee tracker demo gif](./assets/team-profile-generator-gif.gif)
+Here is a [walkthrough video](https://drive.google.com/file/d/1CqIw9W0xZPE-pJJ6VCoI8KjygBbXznF6/view?usp=sharing) demonstrating the functionality of the application (also displayed below):
+![employee tracker demo gif](./assets/employee-tracker-demo-gif.gif)
 
 ## License
 
